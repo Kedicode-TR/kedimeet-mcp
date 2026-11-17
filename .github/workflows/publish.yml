@@ -1,0 +1,20 @@
+# A published GitHub release builds the package and uploads it to PyPI.
+# No token: PyPI trusts this workflow (Trusted Publishing, environment "pypi").
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run test_server.py
+      - run: uv build
+      - run: uv publish --trusted-publishing always
