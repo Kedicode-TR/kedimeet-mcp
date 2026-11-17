@@ -3,8 +3,24 @@
   "name": "app.kedimeet/kedimeet",
   "title": "KediMeet",
   "description": "Search and read call transcripts and summaries recorded by the KediMeet Mac app. Read-only.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "websiteUrl": "https://kedimeet.app/ai",
+  "icons": [
+    {
+      "src": "https://kedimeet.app/assets/icon-180.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "180x180"
+      ]
+    },
+    {
+      "src": "https://kedimeet.app/assets/icon-64.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "64x64"
+      ]
+    }
+  ],
   "repository": {
     "url": "https://github.com/Kedicode-TR/kedimeet-mcp",
     "source": "github"
@@ -13,7 +29,7 @@
     {
       "registryType": "pypi",
       "identifier": "kedimeet-mcp",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"

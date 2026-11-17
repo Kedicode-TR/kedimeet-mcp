@@ -22,10 +22,10 @@ from urllib.parse import urlparse
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
-from mcp.types import ToolAnnotations
+from mcp.types import Icon, ToolAnnotations
 from pydantic import Field
 
-__version__ = "1.0.0"  # версия пакета kedimeet-mcp на PyPI; та же — в server.json для реестра MCP (тест сверяет)
+__version__ = "1.0.1"  # версия пакета kedimeet-mcp на PyPI; та же — в server.json для реестра MCP (тест сверяет)
 
 LIBRARY = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else Path.home() / "Library/Application Support/KediMeet"
 
@@ -34,6 +34,9 @@ server = MCPServer(
     "KediMeet",
     version=__version__,
     website_url="https://kedimeet.app/ai",
+    # Значок приложения с сайта: клиенты MCP показывают его рядом с именем сервера; те же адреса — в server.json
+    icons=[Icon(src="https://kedimeet.app/assets/icon-180.png", mime_type="image/png", sizes=["180x180"]),
+           Icon(src="https://kedimeet.app/assets/icon-64.png", mime_type="image/png", sizes=["64x64"])],
     instructions=(
         "KediMeet holds the user's recorded work calls: transcripts by speaker and summaries (decisions, tasks, "
         "open questions). When a question is about what was discussed, decided or agreed, who assigned or promised "

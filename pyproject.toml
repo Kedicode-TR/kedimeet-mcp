@@ -41,4 +41,4 @@ bypass-selection = true
 "server.py" = "kedimeet_mcp/__init__.py"
 
 [tool.hatch.build.targets.sdist]
-include = ["server.py", "test_server.py", "README.md", "LICENSE", "NOTICE", "server.json"]
+include = ["server.py", "test_server.py", "README.md", "LICENSE", "NOTICE", "server.json", "glama.json"]

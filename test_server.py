@@ -91,6 +91,8 @@ def test() -> None:
     meta = json.loads((Path(__file__).parent / "server.json").read_text())
     assert meta["version"] == server.__version__ and {p["version"] for p in meta["packages"]} == {server.__version__}, meta
     assert len(meta["description"]) <= 100, "реестр MCP режет описание до 100 знаков"
+    # Значок один и тот же в реестре и в ответе сервера при знакомстве
+    assert [i["src"] for i in meta["icons"]] == [i.src for i in server.server.icons], meta["icons"]
     print("ok")
 
 
