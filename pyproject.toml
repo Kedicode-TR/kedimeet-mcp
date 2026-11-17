@@ -1,0 +1,44 @@
+[project]
+name = "kedimeet-mcp"
+dynamic = ["version"]
+description = "Read-only MCP server for KediMeet: Claude, Cursor, Codex and other AI assistants search and read your recorded calls on your Mac"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "KediCode", email = "info@kedicode.cloud" }]
+requires-python = ">=3.12"
+dependencies = ["mcp>=2.3.0"]
+keywords = ["mcp", "model-context-protocol", "meetings", "transcripts", "claude", "cursor", "codex", "kedimeet"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Topic :: Communications :: Conferencing",
+    "Topic :: Office/Business",
+]
+
+[project.urls]
+Homepage = "https://kedimeet.app/ai"
+Repository = "https://github.com/Kedicode-TR/kedimeet-mcp"
+
+[project.scripts]
+kedimeet-mcp = "kedimeet_mcp:main"
+
+# Один файл на всех: приложение кладёт server.py в Resources/mcp и зовёт uv run --script, а пакет — тот же файл модулем
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "server.py"
+
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
+[tool.hatch.build.targets.wheel.force-include]
+"server.py" = "kedimeet_mcp/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["server.py", "test_server.py", "README.md", "LICENSE", "NOTICE", "server.json"]
