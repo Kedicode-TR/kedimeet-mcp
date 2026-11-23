@@ -2,6 +2,8 @@
 
 <!-- mcp-name: app.kedimeet/kedimeet -->
 
+[![Kedicode-TR/kedimeet-mcp MCP server](https://glama.ai/mcp/servers/Kedicode-TR/kedimeet-mcp/badges/score.svg)](https://glama.ai/mcp/servers/Kedicode-TR/kedimeet-mcp)
+
 Ask Claude, Cursor, Codex or any other MCP client about your calls. This read-only server lets an AI assistant search
 and read the meetings that [KediMeet](https://kedimeet.app) recorded on your Mac: transcripts by speaker, and summaries
 with decisions, tasks and open questions.
