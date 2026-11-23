@@ -25,7 +25,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import Icon, ToolAnnotations
 from pydantic import Field
 
-__version__ = "1.0.1"  # версия пакета kedimeet-mcp на PyPI; та же — в server.json для реестра MCP (тест сверяет)
+__version__ = "1.0.2"  # версия пакета kedimeet-mcp на PyPI; та же — в server.json для реестра MCP (тест сверяет)
 
 LIBRARY = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else Path.home() / "Library/Application Support/KediMeet"
 
@@ -38,7 +38,7 @@ server = MCPServer(
     icons=[Icon(src="https://kedimeet.app/assets/icon-180.png", mime_type="image/png", sizes=["180x180"]),
            Icon(src="https://kedimeet.app/assets/icon-64.png", mime_type="image/png", sizes=["64x64"])],
     instructions=(
-        "KediMeet holds the user's recorded work calls: transcripts by speaker and summaries (decisions, tasks, "
+        "KediMeet holds the user's recorded calls, meetings and voice notes: transcripts by speaker and summaries (decisions, tasks, "
         "open questions). When a question is about what was discussed, decided or agreed, who assigned or promised "
         "what, deadlines, the status of tasks and projects, or colleagues and their positions — look here first "
         "(search), then answer. In the answer, name the meeting and its date, and for quotes give the time in the "
@@ -59,7 +59,12 @@ class Meeting:
         self.names: dict[str, str] = self.meta.get("names") or {}
         self.summary = load(folder / "summary.json") or {}
         self.done = (folder / "meeting.md").exists()  # движок пишет его последним
-        self.date = recorded_at(Path(self.meta["source"]).stem) or datetime.fromisoformat(self.meta["addedAt"]).astimezone()
+        # Монолог — голосовые заметки одного человека; без kind (или с любым другим) — разговор
+        self.monologue = self.meta.get("kind") == "monologue"
+        # Дата встречи: recordedAt (приложение или внешний спутник) → дата в имени записи → addedAt
+        recorded = self.meta.get("recordedAt")
+        self.date = ((datetime.fromisoformat(recorded).astimezone() if recorded else None)
+                     or recorded_at(Path(self.meta["source"]).stem) or datetime.fromisoformat(self.meta["addedAt"]).astimezone())
 
     def title(self, rooms: dict[str, str]) -> str:
         # Как в приложении: своё имя встречи → имя по ссылке созвона → название из резюме → имя файла
@@ -197,7 +202,7 @@ def search(
         units = [(f"summary, {part}", meeting.named(item))
                  for key, part in [("short", "short"), ("decisions", "decisions"), ("open_questions", "open questions")]
                  for item in meeting.summary.get(key) or []]
-        units += [("summary, tasks", meeting.named(f'{t["who"]}: {t["what"]}' + (f' (due {t["due"]})' if t.get("due") else "")))
+        units += [("summary, tasks", meeting.named((f'{t["who"]}: ' if t["who"] else "") + t["what"] + (f' (due {t["due"]})' if t.get("due") else "")))
                   for t in meeting.summary.get("tasks") or []]
         units += [(f"{clock(t['start'])}, {meeting.name(t['speaker'])}", f"{meeting.name(t['speaker'])}: {t['text']}")
                   for t in meeting.turns()]
@@ -228,7 +233,8 @@ def list_meetings(
     for meeting in meetings[:limit]:
         people = sorted({meeting.name(t["speaker"]) for t in meeting.turns() if t["speaker"]})
         short = (meeting.summary.get("short") or [""])[0]
-        lines.append(f"{meeting.header(rooms)}\n  participants: {', '.join(people) or '—'}\n  {meeting.named(short)}".rstrip())
+        who = "monologue" if meeting.monologue else f"participants: {', '.join(people) or '—'}"
+        lines.append(f"{meeting.header(rooms)}\n  {who}\n  {meeting.named(short)}".rstrip())
     return "\n\n".join(lines)
 
 
@@ -252,14 +258,17 @@ def get_meeting(meeting: Annotated[str, Field(description="Meeting id from searc
         return f"{m.name(label)}{guess} — {talk[label] / total:.0%}"
 
     done = set(m.meta.get("doneTasks") or [])
-    tasks = [("[x] " if t["what"] in done else "[ ] ") + f'{t["who"]}: {t["what"]}' + (f' (due {t["due"]})' if t.get("due") else "")
+    tasks = [("[x] " if t["what"] in done else "[ ] ") + (f'{t["who"]}: ' if t["who"] else "") + t["what"] + (f' (due {t["due"]})' if t.get("due") else "")
              for t in m.summary.get("tasks") or []]
     parts = [m.header(rooms)]
     if m.meta.get("link"):
         parts.append(f"Link: {m.meta['link']}")
     if turns:
         parts.append(f"Duration: {clock(turns[-1]['end'])}")
-    parts.append("Participants: " + ", ".join(who(label) for label in sorted(talk, key=talk.get, reverse=True)))
+    if m.monologue:
+        parts.append("Kind: monologue — voice notes of one person")
+    else:
+        parts.append("Participants: " + ", ".join(who(label) for label in sorted(talk, key=talk.get, reverse=True)))
     for title, items in [("Short", m.summary.get("short")), ("Decisions", m.summary.get("decisions")),
                          ("Tasks", tasks), ("Open questions", m.summary.get("open_questions"))]:
         if items:
@@ -285,7 +294,8 @@ def get_transcript(
     in pieces around the place search pointed to. Read-only."""
     m, rooms = find(meeting)
     since, until = seconds(start) if start else 0, seconds(end) if end else float("inf")
-    lines = [f"[{clock(t['start'])}] {m.name(t['speaker'])}: {t['text']}"
+    # У монолога один голос — имена спикеров не нужны
+    lines = [f"[{clock(t['start'])}] " + (t["text"] if m.monologue else f"{m.name(t['speaker'])}: {t['text']}")
              for t in m.turns() if t["end"] > since and t["start"] < until]
     return m.header(rooms) + "\n\n" + ("\n".join(lines) or "No turns in this part of the recording")
 

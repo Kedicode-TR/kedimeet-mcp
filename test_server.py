@@ -40,8 +40,21 @@ def test() -> None:
             {"source": "/x/lecture.mp4", "addedAt": "2026-10-01T12:00:00Z"},
             [{"start": 0, "end": 3, "text": "Тариф старый.", "speaker": None}], done=False)
 
+    meeting(root, "Мысли", {"source": "/r/rec_1.m4a", "addedAt": "2026-11-17T08:00:00Z",
+                            "recordedAt": "2026-11-10T09:40:00+03:00", "kind": "monologue"},
+            [{"start": 1.0, "end": 2.0, "text": "Надо переписать онбординг.", "speaker": "SPEAKER_00"}],
+            {"title": "Онбординг", "speakers": [], "short": ["Переписать онбординг"], "decisions": [],
+             "tasks": [{"who": "", "what": "Переписать онбординг", "due": None}], "open_questions": []})
+    # Вид и дата записи из meta.json: recordedAt старше addedAt, монолог без участников
+    only = server.list_meetings(since="2026-11-10", until="2026-11-10")
+    assert "Онбординг" in only and "monologue" in only and "participants" not in only, only
+    full = server.get_meeting("Мысли")
+    assert "Kind: monologue" in full and "Participants" not in full, full
+    assert ": Переписать" not in full and "[ ] Переписать онбординг" in full, full
+    assert "SPEAKER_00" not in server.get_transcript("Мысли") and "?" not in server.get_transcript("Мысли").split("\n\n")[1]
+
     listed = server.list_meetings()
-    assert listed.index("Kick-Off по Тарифам") < listed.index("lecture"), listed  # имя по ссылке; новые сверху
+    assert listed.index("Онбординг") < listed.index("Kick-Off по Тарифам") < listed.index("lecture"), listed  # имя по ссылке; новые сверху
     assert "participants: SPEAKER_01, Майя" in listed and "Майя рассказала" in listed, listed
     assert "no summary yet" in listed.split("[id: lecture]")[1], listed
 
