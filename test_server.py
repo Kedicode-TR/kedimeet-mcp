@@ -35,7 +35,7 @@ def test() -> None:
             {"title": "Тарифы", "speakers": [{"label": "SPEAKER_01", "name": "Даниил", "evidence": "…"}],
              "short": ["SPEAKER_00 рассказала про тарифы"], "decisions": [], "open_questions": [],
              "tasks": [{"who": "SPEAKER_00", "what": "Дописать чек-листы", "due": None},
-                       {"who": "SPEAKER_01", "what": "Посмотреть миграции", "due": "пятница"}]})
+                       {"who": "SPEAKER_01", "what": "Посмотреть миграции", "due": "пятница", "at": "0:09"}]})
     meeting(root, "lecture",
             {"source": "/x/lecture.mp4", "addedAt": "2026-10-01T12:00:00Z"},
             [{"start": 0, "end": 3, "text": "Тариф старый.", "speaker": None}], done=False)
@@ -68,7 +68,7 @@ def test() -> None:
 
     one = server.get_meeting("Созвон 03.11.2026 10-59-37")
     assert "SPEAKER_01 (probably Даниил) — 87%" in one and "Майя — 13%" in one, one
-    assert "- [x] Майя: Дописать чек-листы" in one and "- [ ] SPEAKER_01: Посмотреть миграции (due пятница)" in one, one
+    assert "- [x] Майя: Дописать чек-листы" in one and "- [ ] SPEAKER_01: Посмотреть миграции (due пятница) [0:09]" in one, one
     assert "Duration: 1:10" in one, one  # пустая реплика в конце — не в счёт
     assert "own notes" not in one, one  # своих заметок нет — и раздела нет
     (root / "Созвон 03.11.2026 10-59-37" / "notes.md").write_text("[0:09] Даниил берёт миграции\n")
@@ -93,9 +93,17 @@ def test() -> None:
     assert ru is not None and ru == en and f"{en:%Y-%m-%d %H:%M}" == "2026-11-03 10:59", (ru, en)
     assert server.recorded_at("2026-11-03 notes") is not None and server.recorded_at("lecture") is None
 
-    # Все четыре инструмента — только чтение, с названием и примерами живых вопросов: клиент показывает их отдельно
+    # Открытые задачи по всем встречам: сделанная («Дописать чек-листы») не в счёт, новые встречи сверху, период режет
+    tasks = server.open_tasks()
+    assert tasks.startswith("Open tasks: 2") and "Дописать чек-листы" not in tasks, tasks
+    assert "- SPEAKER_01: Посмотреть миграции (due пятница) [0:09]" in tasks and "- Переписать онбординг\n" in tasks + "\n", tasks
+    assert tasks.index("Онбординг") < tasks.index("Kick-Off по Тарифам"), tasks
+    assert server.open_tasks(since="2026-11-10").count("[id:") == 1
+    assert server.open_tasks(until="2026-10-31") == "No open tasks in this period"
+
+    # Все пять инструментов — только чтение, с названием и примерами живых вопросов: клиент показывает их отдельно
     tools = asyncio.run(server.server.list_tools())
-    assert len(tools) == 4, [t.name for t in tools]
+    assert len(tools) == 5, [t.name for t in tools]
     for tool in tools:
         hints = tool.annotations
         assert hints.read_only_hint and hints.destructive_hint is False and hints.open_world_hint is False, tool.name

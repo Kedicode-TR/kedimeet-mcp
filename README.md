@@ -69,8 +69,9 @@ If you moved your meetings to another folder in KediMeet, add its path as the la
 | `list_meetings` | Meetings in a period, newest first: title, date, participants, the main point of the summary. |
 | `get_meeting` | The full summary: decisions, tasks with done marks, open questions, who spoke how much, the call link and your own notes. |
 | `get_transcript` | The transcript turn by turn, `[time] Name: text`, whole or a part of the recording. |
+| `open_tasks` | Tasks not marked done, across all meetings in a period, newest first: who, what, due date and the meeting. Ask your agent to put them into Jira, Linear or your to-do app. |
 
-All four are marked read-only (`readOnlyHint`). None of them writes, deletes or goes to the network.
+All five are marked read-only (`readOnlyHint`). None of them writes, deletes or goes to the network.
 
 ## Privacy
 

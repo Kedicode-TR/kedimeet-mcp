@@ -25,7 +25,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import Icon, ToolAnnotations
 from pydantic import Field
 
-__version__ = "1.0.2"  # версия пакета kedimeet-mcp на PyPI; та же — в server.json для реестра MCP (тест сверяет)
+__version__ = "1.1.0"  # версия пакета kedimeet-mcp на PyPI; та же — в server.json для реестра MCP (тест сверяет)
 
 LIBRARY = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else Path.home() / "Library/Application Support/KediMeet"
 
@@ -127,6 +127,13 @@ def room(link: str) -> str | None:
     return f"{url.hostname}/{path}" if url.hostname and path else None
 
 
+def task(t: dict) -> str:
+    """«Майя: Дописать чек-листы (due пятница) [12:34]» — задача из резюме одной строкой; в скобках — где в записи о ней
+    договорились (резюме с 24.11.2026), то же время, что у реплик в get_transcript."""
+    return ((f'{t["who"]}: ' if t["who"] else "") + t["what"] + (f' (due {t["due"]})' if t.get("due") else "")
+            + (f' [{t["at"]}]' if t.get("at") else ""))
+
+
 def clock(seconds: float) -> str:
     s = int(seconds)
     return f"{s // 3600}:{s // 60 % 60:02}:{s % 60:02}" if s >= 3600 else f"{s // 60}:{s % 60:02}"
@@ -202,8 +209,7 @@ def search(
         units = [(f"summary, {part}", meeting.named(item))
                  for key, part in [("short", "short"), ("decisions", "decisions"), ("open_questions", "open questions")]
                  for item in meeting.summary.get(key) or []]
-        units += [("summary, tasks", meeting.named((f'{t["who"]}: ' if t["who"] else "") + t["what"] + (f' (due {t["due"]})' if t.get("due") else "")))
-                  for t in meeting.summary.get("tasks") or []]
+        units += [("summary, tasks", meeting.named(task(t))) for t in meeting.summary.get("tasks") or []]
         units += [(f"{clock(t['start'])}, {meeting.name(t['speaker'])}", f"{meeting.name(t['speaker'])}: {t['text']}")
                   for t in meeting.turns()]
         for where, text in units:
@@ -258,8 +264,7 @@ def get_meeting(meeting: Annotated[str, Field(description="Meeting id from searc
         return f"{m.name(label)}{guess} — {talk[label] / total:.0%}"
 
     done = set(m.meta.get("doneTasks") or [])
-    tasks = [("[x] " if t["what"] in done else "[ ] ") + (f'{t["who"]}: ' if t["who"] else "") + t["what"] + (f' (due {t["due"]})' if t.get("due") else "")
-             for t in m.summary.get("tasks") or []]
+    tasks = [("[x] " if t["what"] in done else "[ ] ") + task(t) for t in m.summary.get("tasks") or []]
     parts = [m.header(rooms)]
     if m.meta.get("link"):
         parts.append(f"Link: {m.meta['link']}")
@@ -280,6 +285,25 @@ def get_meeting(meeting: Annotated[str, Field(description="Meeting id from searc
     if notes:
         parts.append("## The user's own notes\n" + notes)
     return "\n\n".join(parts)
+
+
+@server.tool(title="List open tasks", annotations=READ)
+def open_tasks(since: DAY = None, until: DAY = None) -> str:
+    """Tasks from meeting summaries that are not marked done, across all meetings in a period, newest meeting first:
+    who, what, the due date, the meeting and [time] in the recording where it was agreed (read it with get_transcript). For "What are my open action items from this month's calls?", "What did
+    people promise me last week that is still open?", "Put my open tasks from this week's meetings into Jira". Read
+    the meeting with get_meeting for context. Read-only."""
+    # Отсюда агент пользователя сам заводит задачи в Jira, Linear и куда угодно: кнопок «в Jira» в приложении нет
+    # (демо 23.11.2026) — наружу только MCP, копирование и файлы
+    meetings, rooms = library(since, until)
+    blocks, count = [], 0
+    for m in meetings:
+        done = set(m.meta.get("doneTasks") or [])
+        lines = [f"- {m.named(task(t))}" for t in m.summary.get("tasks") or [] if t["what"] not in done]
+        if lines:
+            blocks.append(m.header(rooms) + "\n" + "\n".join(lines))
+            count += len(lines)
+    return f"Open tasks: {count}\n\n" + "\n\n".join(blocks) if blocks else "No open tasks in this period"
 
 
 @server.tool(title="Read a transcript", annotations=READ)

@@ -3,7 +3,7 @@
   "name": "app.kedimeet/kedimeet",
   "title": "KediMeet",
   "description": "Search and read call transcripts and summaries recorded by the KediMeet Mac app. Read-only.",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "websiteUrl": "https://kedimeet.app/ai",
   "icons": [
     {
@@ -29,7 +29,7 @@
     {
       "registryType": "pypi",
       "identifier": "kedimeet-mcp",
-      "version": "1.0.2",
+      "version": "1.1.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
